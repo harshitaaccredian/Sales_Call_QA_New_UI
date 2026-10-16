@@ -1,0 +1,532 @@
+# =============================================================================
+# ACCREDIAN GROUND TRUTH
+# =============================================================================
+# Facts that are true on EVERY call, whatever program is being sold.
+#
+# WHY IT EXISTS
+# The analyser can only flag a statement it can contradict. Its only source of
+# truth used to be the course CSV for the one program on the call, which made a
+# whole class of violation invisible:
+#
+#   "IIM Ranchi is in the top 10 IIMs"
+#       the CSV has no rankings -> nothing to contradict
+#   "For the CFO program we have IIM Calcutta"
+#       the CSV describes ONE program and never lists who we DON'T work with
+#   "Is it equal to a PGDCA?"  "Yeah."
+#       the CSV says what the credential IS, never what it is NOT
+#
+# This file supplies those missing facts, and the rules for using them.
+#
+# -----------------------------------------------------------------------------
+# HOW TO EXTEND THIS FILE  (read this before adding anything)
+# -----------------------------------------------------------------------------
+# Everything is in two layers:
+#
+#   FACTS   sections 1-4. Lists and values. What is true.
+#   RULES   sections 5-6. What to look for, what to compare it against, and
+#           which checklist item fails. The analyser applies every rule here.
+#
+# TO ADD A NEW CHECK, add one block to `claim_rules`. You do not touch the
+# prompt and you do not touch any code. Copy an existing block and fill in:
+#
+#   - id:                    short slug, unique
+#     when_rep:              what the rep does, in plain language
+#     check_against:         which facts section settles it
+#     violation_if:          the test that makes it a FAIL
+#     fails_checklist_item:  must match a checklist item EXACTLY
+#     example_violation:     one real line from a call
+#     example_ok:            one line that must NOT be flagged
+#
+# `fails_checklist_item` is the one field you cannot get wrong. Incidents are
+# built from checklist FAILs, so a rule pointing at an item that does not exist
+# produces nothing. If your new rule needs a checklist item that is not in
+# analysis_prompt.md yet, add the item there too and give it a severity in
+# incident_severity_map.yaml. Those are the only three files involved.
+#
+# TO CHANGE SEVERITY, edit incident_severity_map.yaml, not this file. Severity
+# is policy and lives in one table.
+#
+# TO ADD A FACT ONLY (a new partner, a new ranking), just add it to the list in
+# sections 1-4. The existing rules pick it up immediately.
+# =============================================================================
+
+last_reviewed: "2026-10-06"
+partner_list_verified: true
+
+
+# =============================================================================
+# 1. COMPANY IDENTITY
+# =============================================================================
+company:
+  legal_seller: "Accredian"
+  what_reps_are: "Accredian employees selling a program delivered with a partner institute"
+  what_reps_are_not:
+    - "employees, staff, faculty or program managers of any partner institute"
+    - "calling 'from' IIM, IIT, XLRI or any institute"
+  intro_must_include:
+    - "the name Accredian"
+    - "the full and correct partner institute name"
+
+
+# =============================================================================
+# 2. PARTNER INSTITUTES  (closed world)
+# =============================================================================
+# This list is COMPLETE. An institute that is not here is not a partner.
+# That is deliberate: an open-world reading ("I cannot verify it, so I will let
+# it pass") is exactly what let a fabricated IIM Calcutta partnership through.
+#
+# A stale list produces false positives on a genuine new partner. That is the
+# correct direction to fail — a wrongly flagged call costs one QA review, a
+# missed L3 costs a customer. Update this the day a partnership is signed.
+#
+# canonical    the exact name reps must use
+# aliases      acceptable once the canonical name has been used at least once
+# short_forms  NOT acceptable on their own (this is the existing L1
+#              "incomplete institute name" violation)
+# programs     which programs this institute actually backs. A real partner
+#              attributed to a program it does not back is still a violation.
+# =============================================================================
+partner_institutes:
+
+  - canonical: "XLRI"
+    aliases: ["XLRI"]
+    short_forms: ["XLRI"]
+    programs: ["Executive Development Program in Global Senior Management", "Executive Development Programme for Emerging Chief Technology Officers (The CTO Programme)", "Executive Development Program in Strategy & Leadership", "Executive Development Program in Strategic HR Leadership", "Executive Development Programme in Digital HR Leadership and People Analytics"]
+
+  - canonical: "IIM Visakhapatnam"
+    aliases: ["Indian Institute of Management Visakhapatnam"]
+    short_forms: ["IIMV", "IIM V", "IIM Vizag"]
+    alumni_status: "Executive Alumni status of IIM Visakhapatnam"
+    programs: ["Global Senior Leadership Program", "Senior Management Program", "Post Graduate Diploma in Management for Working Executives (PGDMEx)", "Chief Executive Officer Program (The CEO Program)", "Chief Financial Officer Programme", "Chief Human Resource Officer Programme", "PG Certificate Program in Chief Digital & AI Officer (The CDAIO Program)", "Chief Technology Officer Programme (The CTO Program)", "Executive Program in Strategy, Leadership and Innovation in AI Era", "Executive Program in Leadership with AI", "Executive Program in Generative AI for Business Leaders", "PG Certificate Program in Investment Banking & Capital Markets", "Post Graduate Certificate in FinTech, Blockchain & Risk Management", "Post Graduate Certificate in Strategic Project Management & Leadership"]
+
+  - canonical: "IIM Ranchi"
+    aliases: ["Indian Institute of Management Ranchi"]
+    short_forms: ["IIMR", "IIM R"]
+    programs: ["Senior Management Program", "Chief Human Resource Officer Programme (The CHRO Program)", "CTO & AI Leadership Program", "Executive Program in Strategy & Leadership", "Executive Program in Generative AI & Agentic AI for Leaders", "Executive Program in Leadership with AI", "Executive Program in Strategic HR Leadership"]
+
+  - canonical: "E&ICT Academy IIT Kanpur"
+    aliases: ["E&ICT IIT Kanpur"]
+    short_forms: ["IIT Kanpur", "IIT K", "IITK"]
+    programs: ["Advanced Certificate Program in Design Thinking & Innovation with AI", "Advanced Certificate Program in AI for Leaders", "Professional Certificate Program in Leadership with AI", "Professional Certificate Program in Strategic Project Management & Leadership", "Advanced Certificate Program in Strategic Project Management"]
+
+  - canonical: "E&ICT Academy IIT Guwahati"
+    aliases: ["E&ICT IIT Guwahati"]
+    short_forms: ["IIT Guwahati", "IIT G", "IIT-G", "IITG"]
+    programs: []
+
+  - canonical: "IIM Amritsar"
+    aliases: ["Indian Institute of Management Amritsar"]
+    short_forms: []
+    programs: ["Senior Management Program"]
+
+  - canonical: "IIM Tiruchirappalli"
+    aliases: ["Indian Institute of Management Tiruchirappalli", "IIM Trichy"]
+    short_forms: ["IIMT", "IIM-T"]
+    programs: ["Accelerated Senior Management Programme", "Chief Technology Officer Programme (The CTO Program)", "Certificate Programme in Leadership with AI"]
+
+  - canonical: "IIM Lucknow"
+    aliases: ["Indian Institute of Management Lucknow"]
+    short_forms: ["IIML", "IIM-L"]
+    programs: ["Chief Digital & AI Officer Programme (The CDAIO Program)", "Chief Human Resources Officer Programme (The CHRO Program)", "Executive Program in Strategic Project Management & Leadership"]
+
+  - canonical: "IIM Kashipur"
+    aliases: ["Indian Institute of Management Kashipur"]
+    short_forms: ["IIMK", "IIM-K"]
+    programs: ["Chief Operating Officer Program (The COO Program)"]
+
+  - canonical: "Department of Entrepreneurship and Management, IIT Hyderabad"
+    programs: ["Executive Program in Design Thinking & Innovation for Strategic Leadership", "Professional Certificate Program in Strategic Project Management"]
+
+  - canonical: "IITM Pravartak"
+    programs: ["Executive Program in Technology Leadership & Innovation"]
+
+  - canonical: "IIM Sirmaur"
+    programs: ["Executive Program in Strategy Leadership & Innovation in AI Era", "Executive Program in Leadership with AI"]
+
+  - canonical: "I3C-IIT JAMMU"
+    programs: ["Advanced Certificate in AI for Leaders", "Advanced Certificate in Generative AI for Leaders", "Executive Program in Generative AI & Agentic AI for Leaders", "Executive Program in Leadership with AI"]
+
+  - canonical: "SP Jain School of Global Management"
+    programs: ["Professional Certificate in AI for Leaders", "Executive Program in Leadership with AI", "Executive Program in Generative AI & Agentic AI for Leaders", "Professional Certificate in Generative AI for Business Transformation"]
+
+
+# Institutes confirmed NOT to be partners. Flagged as violations even while
+# partner_list_verified is false, because their absence is certain rather than
+# a gap. Seed this with the prestigious names reps actually drop.
+#
+# A name here that is also in partner_institutes is a configuration error.
+known_non_partners:
+  - "IIM Ahmedabad"
+  - "IIM Bangalore"
+  - "IIM Calcutta"
+  - "IIM Kozhikode"
+  - "IIM Indore"
+  - "IIT Bombay"
+  - "IIT Delhi"
+  - "IIT Madras"
+  - "IIT Kharagpur"
+  - "IIT Roorkee"
+  - "ISB Hyderabad"
+  - "Harvard"
+  - "Wharton"
+  - "Stanford"
+  - "Kellogg"
+  - "INSEAD"
+  - "London Business School"
+
+
+# =============================================================================
+# 3. RANKINGS
+# =============================================================================
+# Record a ranking the way its publisher states it: body, category, year, rank.
+# "Top 10 IIM" is not a ranking, it is marketing.
+#
+# An institute with no entry here cannot be ranked by a rep at all. That is the
+# safe default — leaving one out costs you nothing.
+#
+# DO NOT rely on the model's own memory of rankings. It is stale, it differs
+# between runs, and this system suspends people. If it is not in this list, it
+# is not substantiated.
+# =============================================================================
+rankings:
+  - institute: "IIM Ranchi"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 18
+    permitted_phrasing:
+      - "ranked 18th in NIRF Management 2025"
+      - "among the top 20 management institutes (NIRF 2025)"
+  - institute: "IIM Ranchi"
+    category: "Global"
+    year: 2026
+    rank: "201+"
+    permitted_phrasing:
+      - "ranked 201+ globally"
+      - "among the top business schools globally"
+
+  - institute: "IIM Amritsar"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 64
+    permitted_phrasing:
+      - "ranked 64th in NIRF Management 2025"
+      - "among the top 65 management institutes (NIRF 2025)"
+
+  - institute: "XLRI"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 10
+    permitted_phrasing:
+      - "ranked 10th in NIRF Management 2025"
+      - "among the top 10 management institutes (NIRF 2025)"
+  - institute: "XLRI"
+    category: "Global"
+    year: 2026
+    rank: 33
+    permitted_phrasing:
+      - "ranked 33rd globally"
+      - "among the top 50 business schools globally"
+
+  - institute: "IIM Visakhapatnam"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 29
+    permitted_phrasing:
+      - "ranked 29th in NIRF Management 2025"
+      - "among the top 30 management institutes (NIRF 2025)"
+
+  - institute: "IIM Tiruchirappalli"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 16
+    permitted_phrasing:
+      - "ranked 16th in NIRF Management 2025"
+      - "among the top 20 management institutes (NIRF 2025)"
+
+  - institute: "IIM Lucknow"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 5
+    permitted_phrasing:
+      - "ranked 5th in NIRF Management 2025"
+      - "among the top 5 management institutes (NIRF 2025)"
+  - institute: "IIM Lucknow"
+    category: "Global"
+    year: 2026
+    rank: 58
+    permitted_phrasing:
+      - "ranked 58th globally"
+      - "among the top 60 business schools globally"
+
+  - institute: "IIM Kashipur"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 23
+    permitted_phrasing:
+      - "ranked 23rd in NIRF Management 2025"
+      - "among the top 25 management institutes (NIRF 2025)"
+
+  - institute: "E&ICT Academy IIT Kanpur"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 27
+    permitted_phrasing:
+      - "ranked 27th in NIRF Management 2025"
+      - "ranked 4th in NIRF Engineering 2025 (IIT Kanpur)"
+  - institute: "E&ICT Academy IIT Kanpur"
+    category: "Global"
+    year: 2026
+    rank: 222
+    permitted_phrasing:
+      - "ranked 222nd globally"
+      - "among the top 250 universities globally"
+
+  - institute: "Department of Entrepreneurship and Management, IIT Hyderabad"
+    body: "NIRF"
+    category: "Engineering"
+    year: 2025
+    rank: 7
+    permitted_phrasing:
+      - "ranked 7th in NIRF Engineering 2025"
+      - "ranked 12th in NIRF Overall 2025 (IIT Hyderabad)"
+  - institute: "Department of Entrepreneurship and Management, IIT Hyderabad"
+    category: "Global"
+    year: 2026
+    rank: 395
+    permitted_phrasing:
+      - "ranked 395th globally"
+      - "among top global technical and management institutes"
+
+  - institute: "IITM Pravartak"
+    body: "NIRF"
+    category: "Overall"
+    year: 2025
+    rank: 1
+    permitted_phrasing:
+      - "ranked 1st in NIRF Overall 2025"
+      - "ranked 13th in NIRF Management 2025 (IIT Madras)"
+  - institute: "IITM Pravartak"
+    category: "Global"
+    year: 2026
+    rank: 180
+    permitted_phrasing:
+      - "ranked 180th globally"
+      - "among the top 200 universities globally"
+
+  - institute: "IIM Sirmaur"
+    body: "NIRF"
+    category: "Management"
+    year: 2025
+    rank: 51
+    permitted_phrasing:
+      - "ranked 51st in NIRF Management 2025"
+      - "among the top 55 management institutes (NIRF 2025)"
+
+  - institute: "I3C-IIT JAMMU"
+    body: "NIRF"
+    category: "Engineering"
+    year: 2025
+    rank: 56
+    permitted_phrasing:
+      - "ranked 56th in NIRF Engineering 2025"
+      - "among the top engineering institutes in India (NIRF 2025)"
+
+  - institute: "SP Jain School of Global Management"
+    category: "Asia-Pacific"
+    year: 2026
+    rank: 6
+    permitted_phrasing:
+      - "ranked 6th in Asia-Pacific"
+      - "among the top 10 business schools in Asia-Pacific"
+  - institute: "SP Jain School of Global Management"
+    category: "Global"
+    year: 2026
+    rank: 29
+    permitted_phrasing:
+      - "ranked 29th globally"
+      - "among top 30 global business programs"
+
+
+ranking_staleness_months: 18    # older than this and it stops being quotable
+
+
+# =============================================================================
+# 4. THE CREDENTIAL
+# =============================================================================
+# The course CSV says what the credential IS. This says what it is NOT, so an
+# equivalence claim finally has something to fail against.
+#
+# Override `is` per program in the course CSV if the wording differs.
+# =============================================================================
+credential:
+  is: "Post Graduate Certificate Programme — a certificate, not a degree and not a diploma"
+
+  never_equivalent_to:
+    ["PGDCA", "PGDM", "PGP", "PGDBM", "MBA", "Executive MBA", "EMBA",
+     "M.Tech", "M.S.", "M.Sc", "any Master's degree", "any Bachelor's degree",
+     "any degree", "any diploma", "post graduate diploma"]
+
+  never_recognised_by:
+    ["UGC", "AICTE", "NAAC", "NBA", "Ministry of Education", "Government of India"]
+
+  never_unlocks:
+    ["validity for government jobs", "PSU recruitment eligibility",
+     "PhD admission eligibility", "degree equivalence certificate",
+     "counting as a qualifying degree for further study"]
+
+
+# =============================================================================
+# 5. INTERPRETATION RULES — how to read the transcript
+# =============================================================================
+# These change how a line is attributed, before any fact is checked.
+# =============================================================================
+interpretation_rules:
+
+  - id: affirmation
+    rule: >
+      A rep owns what they agree to. When the customer states a factual
+      proposition — usually as a question — and the rep affirms it, the rep has
+      asserted the WHOLE proposition. Judge it exactly as if the rep had spoken
+      the customer's sentence themselves. The fact that the rep used one word
+      does not make it vague, and it does not make it the customer's claim.
+    affirmations:
+      ["yes", "yeah", "yep", "ya", "haan", "ji", "ji haan", "bilkul", "exactly",
+       "correct", "right", "sahi", "sahi hai", "ekdum", "absolutely",
+       "of course", "definitely", "sure", "100%", "true", "that's right",
+       "pretty much", "more or less", "kind of"]
+    a_hedged_yes_is_still_a_yes: true
+    does_not_apply_to: >
+      Logistics. "Can I pay next week?" / "Haan, sure" is not a claim. This
+      applies when the proposition is about the program, the institute, the
+      credential, fees, placement or rankings.
+    only_cleared_by: >
+      An actual correction. "No, it is a certificate, not a diploma" is a Pass.
+    example_violation: |
+      CUSTOMER: "And is it equal to a PGDCA?"
+      REP:      "Yeah."
+      -> the rep has claimed equivalence to a PGDCA.
+
+  - id: attributive_vs_illustrative
+    rule: >
+      Before flagging a third-party institute, decide intent. ATTRIBUTIVE means
+      the rep presents the program as from, certified by, affiliated with or
+      offered alongside that institute — flag it. ILLUSTRATIVE means the rep
+      uses it as an analogy or benchmark with no claim of a relationship — do
+      not flag it.
+    test: >
+      Would a reasonable customer, hearing this, believe Accredian has a
+      relationship with that institute? If yes, it is attributive.
+    important_limit: >
+      This test resolves attributive vs illustrative ONLY. It does not decide
+      whether a partnership exists. Once a mention is attributive, section 2
+      decides, and absence from that list means false — however confidently the
+      rep spoke.
+    example_violation: "For the CFO program we have IIM Calcutta as well."
+    example_ok: "Just like an IIT or IIM certification adds credibility, similarly this program..."
+
+
+# =============================================================================
+# 6. CLAIM RULES — what to check, and which checklist item fails
+# =============================================================================
+# The analyser applies every rule below on every call.
+# ADD A NEW CHECK BY COPYING ONE BLOCK. No code, no prompt change.
+# =============================================================================
+claim_rules:
+
+  - id: non_partner_institute
+    when_rep: >
+      Names any institute attributively — as provider, certifier, co-brand,
+      affiliate, or as another option Accredian offers.
+    check_against: "partner_institutes and known_non_partners (section 2)"
+    violation_if: >
+      The institute is in known_non_partners, OR it is absent from
+      partner_institutes. Absence IS the verification — the list is closed.
+      Do not reason "I cannot verify this, so I will let it pass."
+      If partner_list_verified is false and the institute is merely absent
+      (not in known_non_partners), still FAIL it but say NEEDS REVIEW in the
+      reason so QA confirms before action is taken.
+    fails_checklist_item: "No unlisted or non-partner institute claimed"
+    never_fail_both_with: "Institution name correct"
+    example_violation: "For the CFO program we have IIM Calcutta and IIM Lucknow as well."
+    example_ok: "This program is delivered with XLRI Delhi-NCR."
+
+  - id: wrong_program_for_partner
+    when_rep: >
+      Attributes a program to a genuine partner that does not back it.
+    check_against: "the `programs` list under that institute (section 2)"
+    violation_if: >
+      The program discussed is not in that institute's `programs`. Skip this
+      rule where `programs` is still empty — that is an unfilled config, not a
+      finding.
+    fails_checklist_item: "No unlisted or non-partner institute claimed"
+    example_violation: "XLRI also runs our data science program."
+    example_ok: "XLRI Delhi-NCR runs the Strategic HR Leadership program."
+
+  - id: ranking_or_tier_claim
+    when_rep: >
+      Asserts standing: "top 10", "top 5", "one of the best", "#1", "premier",
+      "among the top", "tier-1", "highest ranked".
+    check_against: "rankings (section 3)"
+    violation_if: >
+      No verified rank is recorded for that institute, OR the claim is better
+      than the recorded rank, OR the recorded rank is older than
+      ranking_staleness_months. A rep may not make a standing claim the company
+      cannot substantiate.
+    not_this_rule: >
+      A precise but wrong figure ("ranked 12th" when it is 18th) is the lesser
+      item "Rankings stated correctly". Tier inflation and a numeric slip are
+      not the same violation.
+    never_fail_both_with: "Rankings stated correctly"
+    fails_checklist_item: "No unsubstantiated ranking or tier claim"
+    example_violation: "IIM Ranchi is in the top 10 IIMs in the country."
+    example_ok: "IIM Ranchi is ranked 18th in NIRF Management 2024."
+
+  - id: credential_equivalence
+    when_rep: >
+      Says or AGREES that the credential is equal to, the same as, at par with,
+      as good as, counts as, or is treated as another qualification. Watch for
+      this arriving as an affirmation rather than a statement — see the
+      affirmation rule in section 5.
+    check_against: "credential.never_equivalent_to (section 4)"
+    violation_if: "Any equivalence to a listed qualification is asserted or affirmed."
+    fails_checklist_item: "No credential equivalence or recognition claimed"
+    example_violation: 'CUSTOMER: "is it equal to a PGDCA?" REP: "Yeah."'
+    example_ok: "This is a Post Graduate Certificate Programme, not a degree."
+
+  - id: credential_recognition
+    when_rep: >
+      Claims the credential is approved, recognised or accredited by a body, or
+      that it unlocks an outcome reserved for degrees.
+    check_against: "credential.never_recognised_by and credential.never_unlocks (section 4)"
+    violation_if: "Any listed body or outcome is claimed."
+    fails_checklist_item: "No credential equivalence or recognition claimed"
+    example_violation: "It is UGC approved so it is valid for government jobs."
+    example_ok: "It is an industry-recognised certificate from the institute."
+
+  # ---------------------------------------------------------------------------
+  # <-- ADD NEW RULES HERE. Template:
+  #
+  # - id: short_slug
+  #   when_rep: "what the rep does, in plain language"
+  #   check_against: "which section above settles it"
+  #   violation_if: "the test"
+  #   fails_checklist_item: "exact text of a checklist item in analysis_prompt.md"
+  #   example_violation: "a real line from a call"
+  #   example_ok: "a line that must NOT be flagged"
+  #
+  # Ideas you are likely to want next, in rough order of value:
+  #   - competitor_comparison   false claims about upGrad / Simplilearn / Emeritus
+  #   - batch_and_cohort        batch number, size and start date, from a dated list
+  #   - scholarship_authority   who may actually approve a discount, and up to what
+  #   - faculty_names           the approved faculty list per program
+  #   - emi_partners            which NBFCs are actually on panel
+  #   - refund_policy           the one true refund sentence, verbatim
+  # ---------------------------------------------------------------------------

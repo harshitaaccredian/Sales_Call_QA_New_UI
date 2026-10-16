@@ -1,0 +1,96 @@
+# =============================================================================
+# Incident severity lookup
+# =============================================================================
+# Severity is assigned here, not by the model.
+#
+# Asking the LLM for BOTH "did this happen?" and "how bad is it?" gives you two
+# variable judgments per incident. The second one is pure policy — a placement
+# guarantee is an L3 because Accredian decided it is, not because a model
+# inferred it — so it belongs in a table you control and can audit.
+#
+# Every checklist FAIL maps to exactly one severity, deterministically. Two runs
+# that find the same violation always score it the same.
+#
+# This must stay consistent with config/incident_levels.md, which the model
+# still reads for context.
+# =============================================================================
+
+version: "1.1.0"
+default: "L1"
+
+# CHANGELOG
+# 1.1.0  Added the three ground-truth checks. These cover claims the course CSV
+#        could never contradict — fabricated partnerships, inflated rankings and
+#        credential-equivalence claims — so they were previously unflaggable
+#        rather than merely unflagged. See config/accredian_ground_truth.yaml.
+
+# -----------------------------------------------------------------------------
+# Category-level severity — applies to every item in the category unless an
+# item_override below matches first.
+# -----------------------------------------------------------------------------
+categories:
+  Fees & Pricing:          "L2"   # money is what the customer decides on
+  Program Structure:       "L1"   # usually imprecision, not misrepresentation
+  Eligibility:             "L2"   # wrong eligibility wastes the customer's time and fee
+  Certification:           "L2"   # the credential is the product
+  Faculty & Institution:   "L2"
+  Campus Immersion:        "L1"
+  LMS / Access:            "L2"
+  Career & Placement:      "L2"   # see overrides — guarantees escalate to L3
+  USPs & Rankings:         "L1"
+  Application Process:     "L1"
+  Pressure Tactics:        "L2"
+
+# -----------------------------------------------------------------------------
+# Item-level overrides, matched as a case-insensitive substring of the checklist
+# item text. Checked BEFORE the category, first match wins, so order matters.
+#
+# These exist because severity is not uniform within a category: under Career &
+# Placement, promising a placement guarantee is a fabrication (L3) while loose
+# wording about career assistance is imprecision (L1).
+# -----------------------------------------------------------------------------
+item_overrides:
+  # --- L3: claims checked against config/accredian_ground_truth.yaml ---
+  # Note the deliberate split under rankings: inflating a tier ("top 10" when
+  # the verified NIRF Management rank is 18) is a fabricated claim about
+  # standing and sits here at L3, while a wrong but precise figure ("12th"
+  # instead of "18th") stays at L1 under "Rankings stated correctly" further
+  # down. incident_levels.md groups both under the softer reading; this table
+  # is the stricter one Accredian asked for. If you want them aligned, move
+  # "No unsubstantiated ranking or tier claim" to L2 — one edit, here.
+  "No unlisted or non-partner institute claimed":   "L3"
+  "No credential equivalence":                      "L3"
+  "No unsubstantiated ranking or tier claim":       "L3"
+
+  # --- L3: fabricating something that does not exist ---
+  "No placement guarantee":            "L3"
+  "No salary hike":                    "L3"
+  "No false alumni status":            "L3"
+  "No false faculty credentials":      "L3"
+  "No impersonation":                  "L3"
+  "No lifetime access claimed":        "L3"
+  "No physical certificate claimed":   "L3"
+  "No refund claim":                   "L3"
+
+  # --- L2: material commercial or credential detail stated wrongly ---
+  "Retail price stated correctly":     "L2"
+  "Scholarship stated correctly":      "L2"
+  "EMI options stated correctly":      "L2"
+  "Correct certificate type":          "L2"
+  "Certificate institution":           "L2"
+  "Institution name correct":          "L2"
+  "No unethical urgency or pressure":  "L2"
+  "No rude or aggressive language":    "L2"
+
+  # --- L1: imprecision on a detail the customer can verify later ---
+  "Class timings stated correctly":    "L1"
+  "Class hours stated correctly":      "L1"
+  "Duration stated correctly":         "L1"
+  "Modules & Pillars":                 "L1"
+  "Capstone project":                  "L1"
+  "Career assistance stated correctly": "L1"
+  "No physical ID card claimed":       "L1"
+  "Rankings stated correctly":         "L1"
+  "Offer letter timeline":             "L1"
+  "Application fee stated correctly":  "L1"
+  "Attendance threshold":              "L1"
