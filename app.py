@@ -1,5 +1,14 @@
 import streamlit as st
 import os
+
+# Sync Streamlit Cloud secrets to os.environ so all backend modules and background threads inherit them
+try:
+    for sec_key, sec_val in st.secrets.items():
+        if isinstance(sec_val, str) and sec_key not in os.environ:
+            os.environ[sec_key] = sec_val
+except Exception:
+    pass
+
 import time
 import uuid
 import logging
@@ -16,7 +25,10 @@ from src.api.routes.pipeline import _run_pipeline, cleanup_empty_job_folders, _A
 logger = logging.getLogger(__name__)
 
 # Ensure DB is initialized on startup (via Alembic)
-init_db()
+try:
+    init_db()
+except Exception as e:
+    logger.error(f"Failed to initialize database: {e}", exc_info=True)
 
 st.set_page_config(page_title="Sales QA Pipeline", layout="wide")
 
@@ -121,7 +133,7 @@ if start_pipeline:
                 db.commit()
             except Exception as db_exc:
                 logger.error(f"Failed to initialize job records in database: {db_exc}", exc_info=True)
-                st.warning("Database write failed; proceeding with file-based processing. The report will still be generated.")
+                st.warning(f"Database write failed: {db_exc}. Proceeding with file-based processing. The report will still be generated.")
             finally:
                 db.close()
 

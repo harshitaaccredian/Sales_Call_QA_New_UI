@@ -34,6 +34,7 @@ def sanitize_database_url(url: str | None) -> str:
     - Normalizes postgres:// to postgresql://
     - Removes template brackets e.g. [my-password]
     - URL-encodes special characters in credentials (e.g. @ or $)
+    - Ensures sslmode=require for postgresql connections if missing
     """
     if not url:
         return ""
@@ -42,23 +43,38 @@ def sanitize_database_url(url: str | None) -> str:
         url = "postgresql://" + url[len("postgres://"):]
 
     # Match scheme://user:password@host...
-    # Handles both bracketed password [password] and unbracketed password
-    pattern = r"^(?P<prefix>[a-zA-Z0-9_+]+://[^:]+:)(?:\[(?P<bracketed_pw>.*)\]|(?P<raw_pw>[^@]+))@(?P<suffix>.+)$"
+    pattern = r"^(?P<prefix>[a-zA-Z0-9_+]+://)(?P<user>[^:]+):(?P<raw_pw>.+)@(?P<suffix>[^@]+)$"
     m = re.match(pattern, url)
     if m:
-        pw = m.group("bracketed_pw") if m.group("bracketed_pw") is not None else m.group("raw_pw")
-        # Ensure password is URL-encoded
+        prefix = m.group("prefix")
+        user = m.group("user")
+        pw = m.group("raw_pw")
+        suffix = m.group("suffix")
+        # Remove brackets if user wrote [my-password]
+        if pw.startswith("[") and pw.endswith("]"):
+            pw = pw[1:-1]
         encoded_pw = urllib.parse.quote(urllib.parse.unquote(pw), safe="")
-        return f"{m.group('prefix')}{encoded_pw}@{m.group('suffix')}"
+        url = f"{prefix}{user}:{encoded_pw}@{suffix}"
+
+    if url.startswith("postgresql://") and "sslmode" not in url:
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}sslmode=require"
 
     return url
 
 
 def get_database_url() -> str:
-    """Return the active database connection URL from .env or fallback to local SQLite."""
+    """Return the active database connection URL from os.environ, st.secrets, or fallback to local SQLite."""
     raw_url = os.environ.get("DATABASE_URL")
-    if raw_url and raw_url.strip():
-        return sanitize_database_url(raw_url)
+    if not raw_url:
+        try:
+            import streamlit as st
+            raw_url = st.secrets.get("DATABASE_URL")
+        except Exception:
+            pass
+
+    if raw_url and str(raw_url).strip():
+        return sanitize_database_url(str(raw_url).strip())
 
     _DB_DIR.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{_DB_PATH}"
